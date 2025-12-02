@@ -99,7 +99,6 @@ export default function ChatWidget() {
         break;
       
       case 'customer_history':
-        toast.success('Opening customer history');
         if (action.params.customerQuery) {
           // Try to find exact customer match first
           try {
@@ -116,8 +115,9 @@ export default function ChatWidget() {
               );
               
               if (matchedCustomer) {
-                toast.success(`Viewing ${matchedCustomer.name}'s purchase history`);
-                router.push(`/customers/${matchedCustomer.id}`);
+                toast.success(`Opening ${matchedCustomer.name}'s profile`);
+                // Use search param and let the page handle opening the customer modal
+                router.push(`/customers?search=${encodeURIComponent(matchedCustomer.name)}&openFirst=true`);
                 setTimeout(() => setIsOpen(false), 1000);
                 return;
               }
@@ -127,8 +127,10 @@ export default function ChatWidget() {
           }
           
           // Fallback to search if no exact match
+          toast.success(`Searching for customer: ${action.params.customerQuery}`);
           router.push(`/customers?search=${encodeURIComponent(action.params.customerQuery)}`);
         } else {
+          toast.success('Opening customers page');
           router.push('/customers');
         }
         setTimeout(() => setIsOpen(false), 1000);

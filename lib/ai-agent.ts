@@ -80,6 +80,14 @@ export async function processAIRequest(userMessage: string, context?: any): Prom
 async function processLocalAI(userMessage: string): Promise<AIResponse> {
   const message = userMessage.toLowerCase();
   
+  // Low stock check - MUST be before product search to avoid conflicts
+  if (message.includes('low stock') || message.includes('running low') || message.includes('out of stock') || message.includes('low inventory')) {
+    return {
+      actions: [{ action: 'show_low_stock', params: {}, message: 'Showing low stock items' }],
+      explanation: "I'll show you all products that are running low on stock so you can reorder them."
+    };
+  }
+  
   // Sales and product search patterns
   if (message.includes('sell') || message.includes('sale for') || message.includes('checkout')) {
     let customerQuery = null;
@@ -236,15 +244,7 @@ async function processLocalAI(userMessage: string): Promise<AIResponse> {
     };
   }
   
-  // Low stock and inventory viewing
-  if (message.includes('low stock') || message.includes('running low') || message.includes('out of stock') || message.includes('low inventory')) {
-    return {
-      actions: [{ action: 'show_low_stock', params: {}, message: 'Showing low stock items' }],
-      explanation: "I'll show you all products that are running low on stock so you can reorder them."
-    };
-  }
-  
-  // Navigation patterns - General inventory (not low stock specific)
+  // Navigation patterns - General inventory
   if (message.includes('inventor') || message.includes('product list') || message.includes('all products')) {
     return {
       actions: [{ action: 'navigate', params: { page: 'inventory' }, message: 'Opening inventory page' }],

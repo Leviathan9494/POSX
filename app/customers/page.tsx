@@ -37,6 +37,7 @@ function CustomersContent() {
     const actionParam = searchParams.get('action');
     const nameParam = searchParams.get('name');
     const viewParam = searchParams.get('view');
+    const openFirstParam = searchParams.get('openFirst');
     
     if (viewParam === 'all-recommendations') {
       setTimeout(() => fetchAllRecommendations(), 500);
@@ -45,6 +46,19 @@ function CustomersContent() {
     if (searchParam) {
       setSearchQuery(searchParam);
       toast.success(`Searching for: ${searchParam}`);
+      
+      // If openFirst=true, automatically open the first matching customer
+      if (openFirstParam === 'true') {
+        setTimeout(() => {
+          const customer = customers.find(c => 
+            c.name.toLowerCase().includes(searchParam.toLowerCase())
+          );
+          if (customer) {
+            setSelectedCustomer(customer);
+            toast.success(`Opened ${customer.name}'s profile`);
+          }
+        }, 500);
+      }
       
       // If view=recommendations, find the customer and show recommendations
       if (viewParam === 'recommendations') {
