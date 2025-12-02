@@ -3,6 +3,8 @@ node_modules/
 *.log
 .env
 .env.local
+.env.production
+.env*.local
 .DS_Store
 dev.db
 dev.db-journal
@@ -12,4 +14,3 @@ dist/
 build/
 .vercel
 .vscode/
-.env*.local
