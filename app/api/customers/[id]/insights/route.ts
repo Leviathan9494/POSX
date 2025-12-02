@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { mockCustomers, mockSales, mockProducts } from '@/lib/mock-data';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,27 +12,15 @@ export async function GET(
   try {
     const customerId = params.id;
 
-    // Get customer details
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId }
-    });
+    // Get customer from mock data
+    const customer = mockCustomers.find(c => c.id === customerId);
 
     if (!customer) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    // Get all sales for this customer with items
-    const sales = await prisma.sale.findMany({
-      where: { customerId },
-      include: {
-        items: {
-          include: {
-            product: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    // Get all sales for this customer
+    const sales = mockSales.filter(s => s.customerId === customerId);
 
     // Analyze purchase patterns
     const productFrequency = new Map<string, { 
@@ -53,15 +41,15 @@ export async function GET(
           existing.count++;
           existing.totalQuantity += item.quantity;
           existing.totalSpent += item.total;
-          if (sale.createdAt > existing.lastPurchased) {
-            existing.lastPurchased = sale.createdAt;
+          if (new Date(sale.createdAt) > existing.lastPurchased) {
+            existing.lastPurchased = new Date(sale.createdAt);
           }
         } else {
           productFrequency.set(item.productId, {
             product: item.product,
             count: 1,
             totalQuantity: item.quantity,
-            lastPurchased: sale.createdAt,
+            lastPurchased: new Date(sale.createdAt),
             totalSpent: item.total
           });
         }
@@ -82,28 +70,18 @@ export async function GET(
       .sort((a, b) => b[1] - a[1])
       .map(([category, count]) => ({ category, count }));
 
-    // Generate recommendations based on:
-    // 1. Products in favorite categories that customer hasn't bought
-    // 2. Products frequently bought together with their favorites
-    // 3. New products in their favorite categories
-
+    // Generate recommendations from mock data
     const favoriteProductIds = Array.from(productFrequency.keys());
     const topCategories = favoriteCategories.slice(0, 3).map(c => c.category);
 
-    const recommendations = await prisma.product.findMany({
-      where: {
-        AND: [
-          { active: true },
-          { category: { in: topCategories } },
-          { id: { notIn: favoriteProductIds } }, // Products they haven't bought
-          { stock: { gt: 0 } } // In stock
-        ]
-      },
-      take: 12,
-      orderBy: [
-        { createdAt: 'desc' } // Prefer newer products
-      ]
-    });
+    const recommendations = mockProducts
+      .filter(p =>
+        p.active &&
+        topCategories.includes(p.category) &&
+        !favoriteProductIds.includes(p.id) &&
+        p.stock > 0
+      )
+      .slice(0, 12);
 
     // Calculate customer insights
     const avgOrderValue = sales.length > 0 

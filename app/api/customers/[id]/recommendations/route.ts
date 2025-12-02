@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { mockCustomers, mockSales, mockProducts } from '@/lib/mock-data';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,26 +12,18 @@ export async function GET(
   try {
     const customerId = params.id;
 
-    // Get customer with full purchase history
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-      include: {
-        sales: {
-          include: {
-            items: {
-              include: {
-                product: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    });
+    // Get customer from mock data
+    const customer = mockCustomers.find(c => c.id === customerId);
 
     if (!customer) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
+
+    // Get customer's sales
+    const customerSales = mockSales.filter(s => s.customerId === customerId);
+
+    // Get customer's sales
+    const customerSales = mockSales.filter(s => s.customerId === customerId);
 
     // Analyze purchase patterns
     const productFrequency = new Map<string, { 
@@ -45,7 +37,7 @@ export async function GET(
     const categoryFrequency = new Map<string, number>();
     const brandFrequency = new Map<string, number>();
     
-    customer.sales.forEach(sale => {
+    customerSales.forEach(sale => {
       sale.items.forEach(item => {
         // Track product frequency
         const existing = productFrequency.get(item.productId);
@@ -53,15 +45,15 @@ export async function GET(
           existing.count++;
           existing.totalQuantity += item.quantity;
           existing.totalSpent += item.total;
-          if (sale.createdAt > existing.lastPurchased) {
-            existing.lastPurchased = sale.createdAt;
+          if (new Date(sale.createdAt) > existing.lastPurchased) {
+            existing.lastPurchased = new Date(sale.createdAt);
           }
         } else {
           productFrequency.set(item.productId, {
             product: item.product,
             count: 1,
             totalQuantity: item.quantity,
-            lastPurchased: sale.createdAt,
+            lastPurchased: new Date(sale.createdAt),
             totalSpent: item.total
           });
         }
@@ -106,79 +98,38 @@ export async function GET(
     const favoriteProductIds = Array.from(productFrequency.keys());
     const topCategories = favoriteCategories.map(c => c.category);
 
-    // Strategy 1: New products in favorite categories
-    const categoryRecommendations = await prisma.product.findMany({
-      where: {
-        AND: [
-          { active: true },
-          { category: { in: topCategories } },
-          { id: { notIn: favoriteProductIds } },
-          { stock: { gt: 0 } }
-        ]
-      },
-      take: 6,
-      orderBy: { createdAt: 'desc' }
-    });
+    // Strategy 1: New products in favorite categories (from mock data)
+    const categoryRecommendations = mockProducts
+      .filter(p => 
+        p.active && 
+        topCategories.includes(p.category) && 
+        !favoriteProductIds.includes(p.id) &&
+        p.stock > 0
+      )
+      .slice(0, 6);
 
-    // Strategy 2: Products frequently bought by others with similar preferences
-    const similarCustomers = await prisma.customer.findMany({
-      where: {
-        AND: [
-          { id: { not: customerId } },
-          {
-            sales: {
-              some: {
-                items: {
-                  some: {
-                    product: {
-                      category: { in: topCategories }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        ]
-      },
-      include: {
-        sales: {
-          include: {
-            items: {
-              include: {
-                product: true
-              },
-              where: {
-                product: {
-                  AND: [
-                    { id: { notIn: favoriteProductIds } },
-                    { active: true },
-                    { stock: { gt: 0 } }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      take: 10
-    });
-
+    // Strategy 2: Products bought by similar customers
+    const similarCustomerSales = mockSales.filter(s => s.customerId !== customerId);
+    
     const collaborativeProducts = new Map<string, { product: any; score: number }>();
-    similarCustomers.forEach(simCustomer => {
-      simCustomer.sales.forEach(sale => {
-        sale.items.forEach(item => {
-          if (!favoriteProductIds.includes(item.productId)) {
-            const existing = collaborativeProducts.get(item.productId);
-            if (existing) {
-              existing.score++;
-            } else {
+    similarCustomerSales.forEach(sale => {
+      sale.items.forEach(item => {
+        if (!favoriteProductIds.includes(item.productId) && 
+            topCategories.includes(item.product.category)) {
+          const existing = collaborativeProducts.get(item.productId);
+          if (existing) {
+            existing.score++;
+          } else {
+            // Get full product details from mock data
+            const fullProduct = mockProducts.find(p => p.id === item.productId);
+            if (fullProduct && fullProduct.active && fullProduct.stock > 0) {
               collaborativeProducts.set(item.productId, {
-                product: item.product,
+                product: fullProduct,
                 score: 1
               });
             }
           }
-        });
+        }
       });
     });
 
@@ -211,8 +162,8 @@ export async function GET(
     ).slice(0, 12);
 
     // Calculate insights
-    const avgOrderValue = customer.sales.length > 0 
-      ? customer.totalSpent / customer.sales.length 
+    const avgOrderValue = customerSales.length > 0 
+      ? customer.totalSpent / customerSales.length 
       : 0;
 
     const daysSinceLastVisit = customer.lastVisit 
