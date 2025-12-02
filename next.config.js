@@ -8,12 +8,17 @@ const nextConfig = {
     },
   },
   images: {
-    domains: ['cdn.shoplightspeed.com'],
+    domains: ['cdn.shoplightspeed.com', 'placehold.co'],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'cdn.shoplightspeed.com',
         pathname: '/shops/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        pathname: '/**',
       },
     ],
   },
