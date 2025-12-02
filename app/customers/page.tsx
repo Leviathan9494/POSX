@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Users, Search, Plus, Mail, Phone, MapPin, DollarSign } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -17,7 +17,7 @@ interface Customer {
   createdAt: Date;
 }
 
-export default function CustomersPage() {
+function CustomersContent() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -690,5 +690,13 @@ function RecommendationsModal({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CustomersPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <CustomersContent />
+    </Suspense>
   );
 }

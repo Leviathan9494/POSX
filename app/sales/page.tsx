@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { ShoppingCart, Search, Plus, Minus, Trash2, User, DollarSign, X, Sparkles, Package } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -21,7 +21,7 @@ interface CartItem {
   quantity: number;
 }
 
-export default function SalesPage() {
+function SalesContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -641,5 +641,13 @@ export default function SalesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SalesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <SalesContent />
+    </Suspense>
   );
 }

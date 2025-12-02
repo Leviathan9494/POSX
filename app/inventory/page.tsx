@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Package, Search, Plus, AlertCircle, Edit, Archive } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -18,7 +18,7 @@ interface Product {
   unit: string;
 }
 
-export default function InventoryPage() {
+function InventoryContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -373,5 +373,13 @@ function AddProductModal({ onClose, onSuccess }: { onClose: () => void; onSucces
         </form>
       </div>
     </div>
+  );
+}
+
+export default function InventoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <InventoryContent />
+    </Suspense>
   );
 }

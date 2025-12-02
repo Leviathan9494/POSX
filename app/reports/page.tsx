@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Calendar } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -17,7 +17,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-export default function ReportsPage() {
+function ReportsContent() {
   const [dateRange, setDateRange] = useState('today');
   const [reportType, setReportType] = useState('sales');
   const [sales, setSales] = useState<any[]>([]);
@@ -275,5 +275,13 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <ReportsContent />
+    </Suspense>
   );
 }
