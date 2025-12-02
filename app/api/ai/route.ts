@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { processAIRequest } from '@/lib/ai-agent';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const fetchCache = 'force-no-store';
 
 export async function POST(request: Request) {
   try {
