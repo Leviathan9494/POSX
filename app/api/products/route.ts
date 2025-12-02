@@ -1,39 +1,33 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { checkDatabase, handleApiError } from '@/lib/api-utils';
+import { mockProducts } from '@/lib/mock-data';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
 
 export async function GET() {
-  const dbCheck = checkDatabase();
-  if (dbCheck) return dbCheck;
-  
   try {
-    const products = await prisma.product.findMany({
-      where: { active: true },
-      orderBy: { name: 'asc' },
-    });
+    // Return mock data for now
+    const products = mockProducts.filter(p => p.active);
     return NextResponse.json(products);
   } catch (error) {
-    return handleApiError(error, 'fetch products');
+    console.error('Products API error:', error);
+    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const dbCheck = checkDatabase();
-  if (dbCheck) return dbCheck;
-  
   try {
     const data = await request.json();
-    const product = await prisma.product.create({
-      data: {
-        ...data,
-        sku: data.sku || `SKU-${Date.now()}`,
-      },
-    });
-    return NextResponse.json(product);
+    const newProduct = {
+      id: String(mockProducts.length + 1),
+      ...data,
+      sku: data.sku || `SKU-${Date.now()}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    // In a real app, this would be saved to database
+    return NextResponse.json(newProduct);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
   }

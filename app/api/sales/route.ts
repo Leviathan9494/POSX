@@ -1,107 +1,56 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { checkDatabase, handleApiError } from '@/lib/api-utils';
+import { mockSales } from '@/lib/mock-data';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
 
 export async function GET() {
-  const dbCheck = checkDatabase();
-  if (dbCheck) return dbCheck;
-  
   try {
-    const sales = await prisma.sale.findMany({
-      include: {
-        customer: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Return mock data for now
+    const sales = [...mockSales].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
     return NextResponse.json(sales);
   } catch (error) {
-    return handleApiError(error, 'fetch sales');
+    console.error('Sales API error:', error);
+    return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const dbCheck = checkDatabase();
-  if (dbCheck) return dbCheck;
-  
   try {
     const data = await request.json();
     
-    const sale = await prisma.sale.create({
-      data: {
-        saleNumber: `SALE-${Date.now()}`,
-        customerId: data.customerId,
-        subtotal: data.subtotal,
-        tax: data.tax,
-        discount: data.discount || 0,
-        total: data.total,
-        paymentMethod: data.paymentMethod,
-        items: {
-          create: data.items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount || 0,
-            tax: item.tax,
-            total: item.total,
-          })),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+    const newSale = {
+      id: String(mockSales.length + 1),
+      saleNumber: `SALE-${Date.now()}`,
+      customerId: data.customerId,
+      customer: data.customer,
+      subtotal: data.subtotal,
+      tax: data.tax,
+      discount: data.discount || 0,
+      total: data.total,
+      paymentMethod: data.paymentMethod,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: data.items.map((item: any, index: number) => ({
+        id: String(index + 1),
+        saleId: String(mockSales.length + 1),
+        productId: item.productId,
+        product: item.product,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount || 0,
+        tax: item.tax,
+        total: item.total,
+      })),
+    };
+    
+    // In a real app, this would update database
+    console.log('Sale created:', newSale.saleNumber);
 
-    // Update product stock
-    for (const item of data.items) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          stock: {
-            decrement: item.quantity,
-          },
-        },
-      });
-
-      await prisma.stockMovement.create({
-        data: {
-          productId: item.productId,
-          type: 'out',
-          quantity: item.quantity,
-          reason: 'Sale',
-        },
-      });
-    }
-
-    // Update customer stats if customer exists
-    if (data.customerId) {
-      await prisma.customer.update({
-        where: { id: data.customerId },
-        data: {
-          totalSpent: {
-            increment: data.total,
-          },
-          visitCount: {
-            increment: 1,
-          },
-          lastVisit: new Date(),
-        },
-      });
-    }
-
-    return NextResponse.json(sale);
+    return NextResponse.json(newSale);
   } catch (error) {
     console.error('Sale creation error:', error);
     return NextResponse.json({ error: 'Failed to create sale' }, { status: 500 });
