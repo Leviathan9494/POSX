@@ -101,7 +101,33 @@ export default function ChatWidget() {
       case 'customer_history':
         toast.success('Opening customer history');
         if (action.params.customerQuery) {
-          router.push(`/customers?search=${encodeURIComponent(action.params.customerQuery)}&view=history`);
+          // Try to find exact customer match first
+          try {
+            const customerResponse = await fetch('/api/customers');
+            const customers = await customerResponse.json();
+            
+            if (customers && customers.length > 0) {
+              const query = action.params.customerQuery.toLowerCase().trim();
+              
+              // Find best matching customer
+              const matchedCustomer = customers.find((c: any) => 
+                c.name.toLowerCase().includes(query) || 
+                query.includes(c.name.toLowerCase())
+              );
+              
+              if (matchedCustomer) {
+                toast.success(`Viewing ${matchedCustomer.name}'s purchase history`);
+                router.push(`/customers/${matchedCustomer.id}`);
+                setTimeout(() => setIsOpen(false), 1000);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('Error finding customer:', error);
+          }
+          
+          // Fallback to search if no exact match
+          router.push(`/customers?search=${encodeURIComponent(action.params.customerQuery)}`);
         } else {
           router.push('/customers');
         }
@@ -289,8 +315,8 @@ export default function ChatWidget() {
                 </p>
                 <div className="space-y-2">
                   {[
-                    'Sell Battery 18650 to John',
-                    'Show low stock items',
+                    'Show me low stock items',
+                    'Show purchase history for John',
                     'Recommend products for Sarah',
                     'Generate sales report',
                   ].map((prompt, index) => (

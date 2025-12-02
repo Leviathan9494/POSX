@@ -164,20 +164,20 @@ async function processLocalAI(userMessage: string): Promise<AIResponse> {
     }
   }
 
-  // Customer history and recommendations
-  if (message.includes('history') || message.includes('previous purchases') || message.includes('bought before')) {
-    const customerMatch = message.match(/(?:for|of|customer)\s+(.+?)(?:\s+history|$)/i);
-    const customerName = customerMatch ? customerMatch[1] : '';
+  // Customer history and purchase patterns
+  if (message.includes('history') || message.includes('purchase history') || message.includes('previous purchases') || message.includes('bought before') || message.includes('transaction')) {
+    const customerMatch = message.match(/(?:for|of|customer)\s+(.+?)(?:\s+history|\s+transaction|$)/i);
+    const customerName = customerMatch ? customerMatch[1].trim() : '';
     
     return {
       actions: [{ 
         action: 'customer_history', 
         params: { customerQuery: customerName }, 
-        message: 'Retrieving customer purchase history' 
+        message: customerName ? `Viewing purchase history for ${customerName}` : 'Opening customer histories'
       }],
       explanation: customerName 
-        ? `I'll show you the purchase history for ${customerName} and recommend products based on their preferences.`
-        : "I'll open the customers page where you can view purchase histories and get product recommendations."
+        ? `I'll show you all transactions and purchase history for ${customerName}.`
+        : "I'll open the customers page where you can view purchase histories and transaction details."
     };
   }
 
@@ -236,14 +236,16 @@ async function processLocalAI(userMessage: string): Promise<AIResponse> {
     };
   }
   
-  // Navigation patterns
-  if (message.includes('inventor') || message.includes('stock') || message.includes('product')) {
-    if (message.includes('low stock') || message.includes('running low') || message.includes('out of stock')) {
-      return {
-        actions: [{ action: 'show_low_stock', params: {}, message: 'Showing low stock items' }],
-        explanation: "I'll show you all products that are running low on stock so you can reorder them."
-      };
-    }
+  // Low stock and inventory viewing
+  if (message.includes('low stock') || message.includes('running low') || message.includes('out of stock') || message.includes('low inventory')) {
+    return {
+      actions: [{ action: 'show_low_stock', params: {}, message: 'Showing low stock items' }],
+      explanation: "I'll show you all products that are running low on stock so you can reorder them."
+    };
+  }
+  
+  // Navigation patterns - General inventory (not low stock specific)
+  if (message.includes('inventor') || message.includes('product list') || message.includes('all products')) {
     return {
       actions: [{ action: 'navigate', params: { page: 'inventory' }, message: 'Opening inventory page' }],
       explanation: "I'll take you to the inventory page where you can manage your products and stock levels."
@@ -299,14 +301,19 @@ async function processLocalAI(userMessage: string): Promise<AIResponse> {
 • "Find Samsung batteries" - Search products
 • "Recommend products for Sarah" - Get recommendations
 
+**Inventory Management:**
+• "Show me low stock items" - View products running low
+• "Show inventory" - View all products
+• "Add new product" - Create product entry
+
 **Customer Management:**
-• "Show history for John Smith" - View purchase history
+• "Show purchase history for John Smith" - View transactions
+• "Show me purchase history for customer Sarah" - View all purchases
 • "Add new customer named Mike Wilson" - Create customer
 • "Search customer Sarah" - Find customer details
 
 **Reports & Analytics:**
 • "Generate sales report for this week" - Create reports
-• "Show low stock items" - Check inventory alerts
 • "Product analytics for this month" - View trends
 
 **Navigation:**
