@@ -61,14 +61,26 @@ async function generateMockData() {
       continue;
     }
     
-    // Parse price and stock
-    const price = parseFloat(item.Price) || 0;
+    // Parse price and stock - ensure minimum values
+    let price = parseFloat(item.Price) || 0;
+    if (price <= 0) {
+      price = 9.99; // Default price if missing
+    }
+    
     const cost = parseFloat(item.Price_Cost) || price * 0.6;
-    const stock = parseInt(item.Stock_Level) || 0;
+    
+    let stock = parseInt(item.Stock_Level) || 0;
+    if (stock <= 0) {
+      stock = Math.floor(Math.random() * 50) + 10; // Random stock between 10-60
+    }
+    
     const minStock = parseInt(item.Stock_Min) || 5;
     
-    // Extract first image URL
-    const image = item.Images ? item.Images.split(',')[0].trim() : null;
+    // Extract first image URL - provide placeholder if missing
+    let image = item.Images ? item.Images.split(',')[0].trim() : null;
+    if (!image || image === '') {
+      image = `https://placehold.co/400x400/1e293b/white?text=${encodeURIComponent(item.US_Title_Short.substring(0, 20))}`;
+    }
     
     // Determine category
     let category = item.US_Category_2 || item.US_Category_1 || 'Accessories';
