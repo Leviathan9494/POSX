@@ -503,41 +503,196 @@ function CustomerDetailsModal({
   customer: Customer;
   onClose: () => void;
 }) {
+  const [customerData, setCustomerData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCustomerDetails();
+  }, [customer.id]);
+
+  const fetchCustomerDetails = async () => {
+    try {
+      const response = await fetch(`/api/customers/${customer.id}`);
+      const data = await response.json();
+      setCustomerData(data);
+    } catch (error) {
+      console.error('Error fetching customer details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">{customer.name}</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Email</p>
-              <p className="text-gray-900">{customer.email || 'N/A'}</p>
+              <h2 className="text-3xl font-bold mb-1">{customer.name}</h2>
+              <p className="text-blue-100">{customer.email || customer.phone || 'No contact info'}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Phone</p>
-              <p className="text-gray-900">{customer.phone || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Spent</p>
-              <p className="text-gray-900 font-bold">${customer.totalSpent.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Visit Count</p>
-              <p className="text-gray-900 font-bold">{customer.visitCount}</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Address</p>
-            <p className="text-gray-900">{customer.address || 'N/A'}</p>
-          </div>
-          <div className="pt-4">
             <button
               onClick={onClose}
-              className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              className="text-white hover:text-gray-200 text-3xl font-bold"
             >
-              Close
+              ×
             </button>
           </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Customer Info Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 font-semibold mb-1">Total Spent</p>
+                  <p className="text-2xl font-bold text-blue-900">${customer.totalSpent.toFixed(2)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                  <p className="text-sm text-green-600 font-semibold mb-1">Total Visits</p>
+                  <p className="text-2xl font-bold text-green-900">{customer.visitCount}</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 font-semibold mb-1">Avg Order</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    ${customer.visitCount > 0 ? (customer.totalSpent / customer.visitCount).toFixed(2) : '0.00'}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                  <p className="text-sm text-orange-600 font-semibold mb-1">Transactions</p>
+                  <p className="text-2xl font-bold text-orange-900">{customerData?.sales?.length || 0}</p>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Email</p>
+                    <p className="text-gray-900">{customer.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Phone</p>
+                    <p className="text-gray-900">{customer.phone || 'N/A'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600 mb-1">Address</p>
+                    <p className="text-gray-900">{customer.address || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchase History */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Purchase History
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({customerData?.sales?.length || 0} transactions)
+                  </span>
+                </h3>
+                
+                {customerData?.sales && customerData.sales.length > 0 ? (
+                  <div className="space-y-4">
+                    {customerData.sales.map((sale: any) => (
+                      <div 
+                        key={sale.id} 
+                        className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-all"
+                      >
+                        {/* Sale Header */}
+                        <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
+                          <div>
+                            <p className="font-bold text-gray-900">{sale.saleNumber}</p>
+                            <p className="text-sm text-gray-600">{formatDate(sale.createdAt)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-blue-600">${sale.total.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 uppercase">{sale.paymentMethod.replace('_', ' ')}</p>
+                          </div>
+                        </div>
+
+                        {/* Sale Items */}
+                        <div className="space-y-2">
+                          {sale.items.map((item: any) => (
+                            <div 
+                              key={item.id} 
+                              className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                            >
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900 text-sm">{item.product.name}</p>
+                                <p className="text-xs text-gray-600">
+                                  {item.quantity} × ${item.unitPrice.toFixed(2)}
+                                </p>
+                              </div>
+                              <p className="font-semibold text-gray-900">${item.total.toFixed(2)}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Sale Totals */}
+                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-1 text-sm">
+                          <div className="flex justify-between text-gray-600">
+                            <span>Subtotal</span>
+                            <span>${sale.subtotal.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-gray-600">
+                            <span>Tax</span>
+                            <span>${sale.tax.toFixed(2)}</span>
+                          </div>
+                          {sale.discount > 0 && (
+                            <div className="flex justify-between text-green-600">
+                              <span>Discount</span>
+                              <span>-${sale.discount.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-gray-900 font-bold text-base pt-1 border-t border-gray-200">
+                            <span>Total</span>
+                            <span>${sale.total.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <p className="text-gray-500 text-lg">No purchase history available</p>
+                    <p className="text-gray-400 text-sm mt-2">This customer hasn't made any purchases yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50">
+          <button
+            onClick={onClose}
+            className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
