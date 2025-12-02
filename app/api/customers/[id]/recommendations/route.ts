@@ -22,9 +22,6 @@ export async function GET(
     // Get customer's sales
     const customerSales = mockSales.filter(s => s.customerId === customerId);
 
-    // Get customer's sales
-    const customerSales = mockSales.filter(s => s.customerId === customerId);
-
     // Analyze purchase patterns
     const productFrequency = new Map<string, { 
       product: any; 
