@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
   images: {
     domains: ['cdn.shoplightspeed.com'],
     remotePatterns: [
@@ -11,6 +16,17 @@ const nextConfig = {
         pathname: '/shops/**',
       },
     ],
+  },
+  // Ensure API routes are not statically generated
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+        ],
+      },
+    ];
   },
 }
 
